@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-30 11:56:27.761331",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "url",
+  "username",
+  "password",
+  "enabled",
+  "request_timeout_seconds",
+  "sync_window_minutes",
+  "max_days_per_call"
+ ],
+ "fields": [
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "URL"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
+  },
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "request_timeout_seconds",
+   "fieldtype": "Int",
+   "label": "Request Timeout Seconds",
+   "options": "60"
+  },
+  {
+   "default": "10",
+   "fieldname": "sync_window_minutes",
+   "fieldtype": "Int",
+   "label": "Sync Window Minutes"
+  },
+  {
+   "default": "7",
+   "fieldname": "max_days_per_call",
+   "fieldtype": "Int",
+   "label": "Max Days Per Call"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-01-30 13:29:51.949549",
+ "modified_by": "Administrator",
+ "module": "eTimeTrackLite",
+ "name": "eTimeTrackLite Setting",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

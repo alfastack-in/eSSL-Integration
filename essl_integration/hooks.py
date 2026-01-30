@@ -250,3 +250,11 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+scheduler_events = {
+"cron": {
+# every 5 minutes
+"*/10 * * * *": [
+"essl_integration.etimetracklite.sync.run_scheduled_sync"
+]
+}
+}
