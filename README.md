@@ -160,6 +160,24 @@ bench --site <your-site> execute essl_integration.etimetracklite.sync.run_schedu
 
 ---
 
+## 🧲 Manual Backfill / Missed Punch Recovery
+
+Use `sync_backlog` to fetch punch logs for a specific period without changing the scheduled sync cursor (`Last Sync At`).
+The command splits the range into smaller chunks, which helps avoid ESSL server timeouts.
+
+```bash
+bench --site <your-site> execute essl_integration.etimetracklite.sync.sync_backlog --kwargs "{'device_name':'ADZV213260658','from_datetime':'2026-05-14 00:00:00','to_datetime':'2026-05-16 23:59:59','chunk_hours':6}"
+```
+
+Notes:
+
+* `device_name` can be the Biometric Device name, serial number, or friendly device name.
+* Leave `device_name` empty to backfill all active devices.
+* Smaller `chunk_hours` values are safer for slow ESSL servers.
+* Existing Employee Checkins are skipped, so rerunning a backfill is duplicate-safe.
+
+---
+
 ## 🧾 Logging & Debugging
 
 All API calls are logged in **Integration Request**:
