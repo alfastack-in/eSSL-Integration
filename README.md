@@ -162,7 +162,10 @@ bench --site <your-site> execute essl_integration.etimetracklite.sync.run_schedu
 
 ## 🧲 Manual Backfill / Missed Punch Recovery
 
-Use `sync_backlog` to fetch punch logs for a specific period without changing the scheduled sync cursor (`Last Sync At`).
+Open **eTimeTrackLite Setting** and click **Sync Backlog** to fetch punch logs for a specific period without changing the scheduled sync cursor (`Last Sync At`).
+The dialog accepts Device, From Datetime, To Datetime, and Chunk Hours.
+
+You can also use `sync_backlog` from bench.
 The command splits the range into smaller chunks, which helps avoid ESSL server timeouts.
 
 ```bash
