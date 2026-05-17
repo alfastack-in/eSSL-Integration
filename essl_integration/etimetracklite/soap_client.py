@@ -8,6 +8,14 @@ SOAP_ENV_NS = "http://schemas.xmlsoap.org/soap/envelope/"
 TEMPURI_NS = "http://tempuri.org/"
 
 
+class ESSLRequestError(Exception):
+    pass
+
+
+class ESSLTimeoutError(ESSLRequestError):
+    pass
+
+
 def build_get_transactions_log_xml(from_datetime_str, to_datetime_str, serial_number, username, password):
     # IMPORTANT: No augmented assignments used.
     xml = """<?xml version="1.0" encoding="utf-8"?>
@@ -43,5 +51,17 @@ def post_soap(url, xml_body, timeout_seconds):
     }
 
     # Using requests (backend app code), not server script.
-    res = requests.post(url, data=xml_body.encode("utf-8"), headers=headers, timeout=timeout_seconds)
+    try:
+        res = requests.post(url, data=xml_body.encode("utf-8"), headers=headers, timeout=timeout_seconds)
+        res.raise_for_status()
+    except requests.exceptions.Timeout:
+        raise ESSLTimeoutError(
+            "Timed out waiting for ESSL server response after {0} seconds. "
+            "Check the ESSL server/VPN/firewall and reduce Max Days Per Call if the device has a large punch backlog.".format(
+                timeout_seconds
+            )
+        ) from None
+    except requests.exceptions.RequestException as e:
+        raise ESSLRequestError("ESSL server request failed: {0}".format(e)) from None
+
     return res

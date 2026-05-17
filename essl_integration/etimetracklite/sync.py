@@ -1,9 +1,12 @@
 import json
+import re
 import traceback
 
 import frappe
 
 from essl_integration.etimetracklite.soap_client import (
+    ESSLRequestError,
+    ESSLTimeoutError,
     build_get_transactions_log_xml,
     post_soap,
 )
@@ -14,9 +17,9 @@ from essl_integration.etimetracklite.parser import (
 )
 
 from essl_integration.essl_integration.utils.datetime_utils import (
-now_datetime,
-to_soap_format,
-subtract_minutes,
+    now_datetime,
+    subtract_minutes,
+    to_soap_format,
 )
 
 
@@ -52,6 +55,14 @@ def run_scheduled_sync():
             )
 
 
+def _get_request_settings(settings):
+    return {
+        "window_minutes": int(settings.sync_window_minutes or 10),
+        "timeout_seconds": int(settings.request_timeout_seconds or 60),
+        "max_days": int(settings.max_days_per_call or 7),
+    }
+
+
 def sync_one_device(device_row, settings):
     device_name = device_row.get("name")
     serial_no = device_row.get("serial_no")
@@ -66,9 +77,10 @@ def sync_one_device(device_row, settings):
         )
         return
 
-    window_minutes = int(settings.sync_window_minutes or 10)
-    timeout_seconds = int(settings.request_timeout_seconds or 60)
-    max_days = int(settings.max_days_per_call or 7)
+    request_settings = _get_request_settings(settings)
+    window_minutes = request_settings["window_minutes"]
+    timeout_seconds = request_settings["timeout_seconds"]
+    max_days = request_settings["max_days"]
 
     now_dt = now_datetime()
     last_sync_at = device_row.get("last_sync_at")
@@ -163,25 +175,68 @@ def sync_one_device(device_row, settings):
             synced_at=now_dt
         )
 
-    except Exception as e:
-        # Mark integration request as failed
-        _mark_integration_request_failed(
-            integration_request_name,
-            {
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }
-        )
-        _update_device_sync_status(
+    except ESSLTimeoutError as e:
+        _handle_sync_failure(
+            integration_request_name=integration_request_name,
             device_name=device_name,
-            status="Failed",
-            message=str(e),
-            log_count=parsed_count,
-            synced_at=None
+            error=e,
+            parsed_count=parsed_count,
+            log_error=False,
         )
+    except ESSLRequestError as e:
+        _handle_sync_failure(
+            integration_request_name=integration_request_name,
+            device_name=device_name,
+            error=e,
+            parsed_count=parsed_count,
+            log_error=False,
+        )
+    except Exception as e:
+        _handle_sync_failure(
+            integration_request_name=integration_request_name,
+            device_name=device_name,
+            error=e,
+            parsed_count=parsed_count,
+            log_error=True,
+        )
+
+
+def _handle_sync_failure(integration_request_name, device_name, error, parsed_count, log_error):
+    error_message = str(error)
+
+    if not error_message:
+        error_message = error.__class__.__name__
+
+    if isinstance(error, ESSLRequestError):
+        error_payload = {
+            "error": error_message,
+            "error_type": error.__class__.__name__,
+        }
+    else:
+        error_payload = {
+            "error": error_message,
+            "error_type": error.__class__.__name__,
+            "traceback": traceback.format_exc()
+        }
+
+    _mark_integration_request_failed(integration_request_name, error_payload)
+
+    _update_device_sync_status(
+        device_name=device_name,
+        status="Failed",
+        message=error_message,
+        log_count=parsed_count,
+        synced_at=None
+    )
+
+    if log_error:
         frappe.log_error(
             title="ESSL Sync Failed (Device: {0})".format(device_name),
             message=traceback.format_exc()
+        )
+    else:
+        frappe.logger("essl_integration").warning(
+            "ESSL sync failed for device {0}: {1}".format(device_name, error_message)
         )
 
 
@@ -268,7 +323,7 @@ def _create_integration_request(service, url, request_data, raw_request_xml, ref
     # data: store high-level json + raw xml
     payload = {
         "request": request_data,
-        "raw_request_xml": raw_request_xml
+        "raw_request_xml": _mask_soap_secrets(raw_request_xml)
     }
     ir.data = json.dumps(payload, indent=2)
 
@@ -280,6 +335,18 @@ def _create_integration_request(service, url, request_data, raw_request_xml, ref
     ir.insert(ignore_permissions=True)
     frappe.db.commit()
     return ir.name
+
+
+def _mask_soap_secrets(raw_request_xml):
+    if not raw_request_xml:
+        return raw_request_xml
+
+    return re.sub(
+        r"(<UserPassword>)(.*?)(</UserPassword>)",
+        r"\1********\3",
+        raw_request_xml,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
 
 def _mark_integration_request_completed(integration_request_name, raw_response_xml):
