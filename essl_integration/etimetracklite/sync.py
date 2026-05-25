@@ -583,6 +583,7 @@ def _create_employee_checkin(employee, punch_dt, device_name):
     doc.device_id = device_name
     doc.log_type = ""  # blank as per your decision
     doc.skip_auto_attendance = 0
+    doc.flags.from_essl_integration = True
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
 

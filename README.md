@@ -15,6 +15,7 @@ This app fetches punch logs from ESSL biometric devices using SOAP APIs and crea
 * ✅ Duplicate-safe (idempotent checkin creation)
 * ✅ Uses Frappe’s built-in **Integration Request** logging
 * ✅ Scheduler-based automatic sync
+* ✅ Compatible with HR geolocation tracking for biometric-device checkins
 * ✅ Open-source friendly & extensible
 
 ---
@@ -236,6 +237,7 @@ This makes the sync **idempotent** and safe to run frequently.
 * ERPNext Shift + Auto Attendance handles IN / OUT logic
 * HR can define shifts independently
 * No device-side punch type assumptions
+* Biometric checkins skip HRMS mobile geofence validation when `device_id` matches a configured Biometric Device
 
 ---
 
